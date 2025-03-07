@@ -8,7 +8,7 @@ use dialoguer::Confirm;
 use tempdir::TempDir;
 pub use GarlicCommand as Cc;
 
-const SPEC_GET: &str = "bun x openapi-zod-client ../spec.yml -o ./src/lib/gen/client.ts";
+const SPEC_GET: &str = "bun x openapi-zod-client ./spec.yml -o ./app/src/lib/gen/client.ts";
 const SQLX_PREPARE: &str = "cargo sqlx prepare --workspace";
 
 fn main() {
@@ -56,9 +56,6 @@ fn main() {
                 format!("{location}/.env"),
             )
             .expect("Expected to be able to copy to .env");
-
-            File::create(format!("{location}/.garlic"))
-                .expect("Expected to be able to create a .garlic file");
 
             garlic_print("🧄 Done!");
             garlic_print("Setup your database and set your .env's DATABASE_URL");
