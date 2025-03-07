@@ -35,15 +35,15 @@ fn main() {
 
             Cmd::run("git init").req();
         }
-        Cc::RunBackend => Cmd::run("cargo run").req(),
-        Cc::RunFrontend => Cmd::run("bun x vite dev").req(),
+        Cc::RunBackend { args } => Cmd::run("cargo run").args(args).req(),
+        Cc::RunFrontend { args } => Cmd::run("bun x vite dev").args(args).req(),
         Cc::Build => {
             Cmd::run("bun x vite build").req();
             Cmd::run("cargo build --release").req()
         }
-        Cc::Prepare => Cmd::run(SQLX_PREPARE).req(),
-        Cc::Preview => Cmd::run("bun x vite preview").req(),
-        Cc::TestUnit => Cmd::run("bun x vitest").req(),
+        Cc::Prepare { args } => Cmd::run(SQLX_PREPARE).args(args).req(),
+        Cc::Preview { args } => Cmd::run("bun x vite preview").args(args).req(),
+        Cc::TestUnit { args } => Cmd::run("bun x vitest").args(args).req(),
         Cc::TestAll => {
             Cmd::run("cargo test").req();
             Cmd::run(SPEC_GET).req();
@@ -56,7 +56,7 @@ fn main() {
             Cmd::run(SPEC_GET).req();
             Cmd::run("vitest spec --run").req()
         }
-        Cc::Migrate => Cmd::run("cargo sqlx migrate").req(),
+        Cc::Migrate { args } => Cmd::run("cargo sqlx migrate").args(args).req(),
     }
 }
 

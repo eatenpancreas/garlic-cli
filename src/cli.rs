@@ -22,24 +22,55 @@ pub enum GarlicCommand {
     Init {
         location: Option<String>,
     },
-    /// Runs the backend. aliases = (backend, server)
-    #[command(name = "run:backend", aliases=["backend", "server"])]
-    RunBackend,
-    /// Runs the frontend. aliases = (frontend, dev)
-    #[command(name = "run:frontend", aliases=["frontend", "dev"])]
-    RunFrontend,
-    /// builds the frontend and backend.
-    Build,
-    Prepare,
-    Preview,
-    /// aliases = (vitest)
-    #[command(name = "test:unit", aliases=["vitest"])]
-    TestUnit,
-    /// aliases = (test)
+    /// Tests the backend, runs `cargo spec` to make sure the frontend is in sync and then tests the frontend. aliases = (test)
     #[command(name = "test:all", aliases=["test"])]
     TestAll,
+    /// Gets the openapi spec from the api and generates the frontend typescript implementation and routes
     Spec,
-    Migrate,
+    /// builds the frontend and backend.
+    #[command(next_help_heading = "WRAPPER COMMANDS")]
+    Build,
+
+    //--- wrappers
+    /// Wrapper for 'cargo run'. aliases = (backend, server)
+    #[command(name = "run:backend", aliases=["backend", "server"])]
+    RunBackend {
+        /// Pass in arguments for 'cargo run'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
+    /// Wrapper for 'bun x vite dev'. aliases = (frontend, dev)
+    #[command(name = "run:frontend", aliases=["frontend", "dev"])]
+    RunFrontend {
+        /// Pass in arguments for 'bun x vite dev'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
+    /// Wrapper for 'cargo sqlx prepare --workspace'.
+    Prepare {
+        /// Pass in arguments for 'cargo sqlx prepare --workspace'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
+    /// Wrapper for 'bun x vite preview'.
+    Preview {
+        /// Pass in arguments for 'bun x vite preview'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
+    /// Wrapper for 'bun x vitest'. aliases = (vitest)
+    #[command(name = "test:unit", aliases=["vitest"])]
+    TestUnit {
+        /// Pass in arguments for bun x vitest'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
+    /// Wrapper for 'cargo sqlx migrate'.
+    Migrate {
+        /// Pass in arguments for 'cargo sqlx migrate'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
 }
 
 #[must_use]
@@ -57,6 +88,21 @@ impl Cmd {
     pub fn arg(mut self, arg: impl Display + AsRef<OsStr>) -> Self {
         self.1.extend(format!(" {arg}").chars());
         self.0.arg(arg);
+        self
+    }
+
+    pub fn args<I, S>(mut self, args: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Display + AsRef<OsStr>,
+    {
+        let args = args.into_iter().map(|arg| {
+            self.1.extend(format!(" {arg}").chars());
+            arg
+        });
+
+        self.0.args(args);
+
         self
     }
 
