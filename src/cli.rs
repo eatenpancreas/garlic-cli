@@ -40,6 +40,13 @@ pub enum GarlicCommand {
         #[arg(long, allow_hyphen_values = true, num_args = 0..)]
         args: Vec<String>,
     },
+    /// Wrapper for 'cargo install garlic-cli'. aliases = (update)
+    #[command(name = "update:self", aliases=["update"])]
+    UpdateSelf {
+        /// Pass in arguments for 'cargo install garlic-cli'
+        #[arg(long, allow_hyphen_values = true, num_args = 0..)]
+        args: Vec<String>,
+    },
     /// Wrapper for 'bun x vite dev'. aliases = (frontend, dev)
     #[command(name = "run:frontend", aliases=["frontend", "dev"])]
     RunFrontend {

@@ -66,6 +66,7 @@ fn main() {
             garlic_print("Run `garlic dev --open` to run and open the site!");
         }
         Cc::RunBackend { args } => Cmd::run("cargo run").args(args).req(),
+        Cc::UpdateSelf { args } => Cmd::run("cargo install garlic-cli").args(args).req(),
         Cc::RunFrontend { args } => Cmd::run("bun x vite dev").app().args(args).req(),
         Cc::Build => {
             Cmd::run("bun x vite build").app().req();
