@@ -1,9 +1,10 @@
 use std::{
+    env::{self, current_dir},
     ffi::OsStr,
     fmt::Display,
     fs,
     path::{Path, PathBuf},
-    process::{exit, Command},
+    process::{exit, Command as StdCommand},
 };
 
 use clap::command;
@@ -12,7 +13,7 @@ use colored::Colorize;
 #[derive(clap::Parser)]
 #[command(arg_required_else_help = true)]
 #[command(author, version, about, long_about = None)]
-pub struct Cli {
+pub struct GarlicParser {
     #[clap(subcommand)]
     pub command: GarlicCommand,
 }
@@ -74,20 +75,37 @@ pub enum GarlicCommand {
 }
 
 #[must_use]
-pub struct Cmd(Command, String);
-impl Cmd {
-    pub fn run(command: &str) -> Self {
-        let mut args = command.split(" ");
-        let cmd = args.next().expect("Expected command to not be empty");
-        let mut cmd = Command::new(cmd);
-        cmd.args(args);
+pub struct Cmd {
+    inner: StdCommand,
+    display: String,
+    return_dir: PathBuf,
+}
 
-        Self(cmd, command.to_owned())
+impl Cmd {
+    pub fn run(command: impl AsRef<str>) -> Self {
+        let command = command.as_ref();
+        let mut args = command.split(" ");
+        let return_dir = current_dir().expect("Expected to be in a valid directory");
+
+        let cmd = args.next().expect("Expected command to not be empty");
+        let dir = match find_garlic_directory() {
+            Some(dir) => dir,
+            None => return_dir.clone(),
+        };
+
+        let mut cmd = StdCommand::new(cmd);
+        cmd.args(args).current_dir(dir);
+
+        Self {
+            inner: cmd,
+            display: command.to_owned(),
+            return_dir,
+        }
     }
 
     pub fn arg(mut self, arg: impl Display + AsRef<OsStr>) -> Self {
-        self.1.extend(format!(" {arg}").chars());
-        self.0.arg(arg);
+        self.display.extend(format!(" {arg}").chars());
+        self.inner.arg(arg);
         self
     }
 
@@ -97,22 +115,34 @@ impl Cmd {
         S: Display + AsRef<OsStr>,
     {
         let args = args.into_iter().map(|arg| {
-            self.1.extend(format!(" {arg}").chars());
+            self.display.extend(format!(" {arg}").chars());
             arg
         });
 
-        self.0.args(args);
+        self.inner.args(args);
 
         self
     }
 
     fn display(&self) {
-        println!("{}: Running \"{}\"", "[garlic]".green(), self.1.cyan());
+        println!(
+            "{}: Running \"{}\"",
+            "[garlic]".green(),
+            self.display.cyan()
+        );
+    }
+
+    pub fn app(mut self) -> Self {
+        self.inner.current_dir(self.return_dir.join("app"));
+        self
     }
 
     pub fn req(mut self) {
         self.display();
-        match self.0.status() {
+        let status = self.inner.status();
+        self.return_to_dir();
+
+        match status {
             Err(e) => error(e.kind(), e),
             Ok(o) if !o.success() => exit(o.code().unwrap_or(1)),
             _ => {}
@@ -121,15 +151,27 @@ impl Cmd {
 
     pub fn opt(mut self) {
         self.display();
-        match self.0.status() {
+        match self.inner.status() {
             Err(e) => error_opt(e.kind(), e),
             _ => {}
         }
+
+        self.return_to_dir();
     }
 
     pub fn ok(mut self) -> bool {
         self.display();
-        self.0.status().is_ok_and(|o| o.success())
+        let ok = self.inner.status().is_ok_and(|o| o.success());
+
+        self.return_to_dir();
+        ok
+    }
+
+    fn return_to_dir(&self) {
+        match env::set_current_dir(&self.return_dir) {
+            Ok(_) => {}
+            Err(e) => panic!("Failed to change directory: {}", e),
+        }
     }
 }
 
@@ -137,7 +179,7 @@ pub fn garlic_print(content: impl Display) {
     println!("{}: {}", "[garlic]".green(), content);
 }
 
-pub fn error(kind: impl Display, message: impl Display) {
+pub fn error(kind: impl Display, message: impl Display) -> ! {
     println!(
         "{} (type {}): {}",
         "Error".red(),
@@ -178,8 +220,6 @@ pub fn copy_dir_contents(
     let input_root = PathBuf::from(from).components().count();
 
     while let Some(working_path) = stack.pop() {
-        println!("process: {:?}", &working_path.strip_prefix(from));
-
         // Generate a relative path
         let src: PathBuf = working_path.components().skip(input_root).collect();
 
@@ -190,7 +230,6 @@ pub fn copy_dir_contents(
             output_root.join(&src)
         };
         if fs::metadata(&dest).is_err() {
-            println!(" mkdir: {:?}", dest);
             fs::create_dir_all(&dest)?;
         }
 
@@ -203,7 +242,7 @@ pub fn copy_dir_contents(
                 match path.file_name() {
                     Some(filename) => {
                         let dest_path = dest.join(filename);
-                        println!("  copying {:?}", &path.strip_prefix(from),);
+                        garlic_print(format!("copying {:?}", &path.strip_prefix(from).unwrap()));
                         fs::copy(&path, &dest_path)?;
                     }
                     None => {
@@ -215,4 +254,21 @@ pub fn copy_dir_contents(
     }
 
     Ok(())
+}
+
+fn find_garlic_directory() -> Option<PathBuf> {
+    let mut current_dir = env::current_dir().ok()?;
+
+    loop {
+        let garlic_path = current_dir.join(".garlic");
+        if garlic_path.exists() {
+            return Some(current_dir);
+        }
+
+        if let Some(parent) = current_dir.parent() {
+            current_dir = parent.to_path_buf();
+        } else {
+            return None;
+        }
+    }
 }

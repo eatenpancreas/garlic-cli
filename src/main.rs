@@ -1,26 +1,28 @@
 mod cli;
 
+use std::fs::{copy, remove_dir_all, File};
+
 use clap::Parser;
 pub use cli::*;
 use dialoguer::Confirm;
 use tempdir::TempDir;
 pub use GarlicCommand as Cc;
 
-const SPEC_GET: &str = "bun openapi-zod-client spec.yml -o ./src/lib/gen/client.ts";
+const SPEC_GET: &str = "bun openapi-zod-client spec.yml -o ./app/src/lib/gen/client.ts";
 const SQLX_PREPARE: &str = "cargo sqlx prepare --workspace";
 
 fn main() {
-    match Cli::parse().command {
+    match GarlicParser::parse().command {
         Cc::Init { location } => {
             let location = location.as_deref().unwrap_or(".");
             init_inner();
             if !folder_empty(location)
-                && Confirm::new()
+                && !Confirm::new()
                     .with_prompt("Folder is not empty. Continue?")
                     .interact()
                     .unwrap_or(false)
             {
-                return garlic_print("Folder is not empty. Exiting");
+                error("not_empty", "Folder is not empty. Exiting");
             }
             let tempdir = TempDir::new("garlic-init")
                 .expect("Expected to be able to create temporary directory");
@@ -31,30 +33,50 @@ fn main() {
                 .arg(temp_str)
                 .req();
 
+            remove_dir_all(format!("{temp_str}/.git")).expect("Expected to remove original .git");
+
             copy_dir_contents(temp_str, location).expect("Expected to be able to clone directory");
 
             Cmd::run("git init").req();
+            Cmd::run("bun install").app().req();
+
+            copy(
+                format!("{location}/.env.example"),
+                format!("{location}/.env"),
+            )
+            .expect("Expected to be able to copy to .env");
+
+            File::create(format!("{location}/.garlic"))
+                .expect("Expected to be able to create a .garlic file");
+
+            garlic_print("🧄 Done!");
+            garlic_print("Setup your database and set your .env's DATABASE_URL");
+            garlic_print("And make sure to set the JWT_SECRET as well");
+            println!();
+            garlic_print("Then...");
+            garlic_print("Run `garlic server` to start the server!");
+            garlic_print("Run `garlic dev --open` to run and open the site!");
         }
         Cc::RunBackend { args } => Cmd::run("cargo run").args(args).req(),
-        Cc::RunFrontend { args } => Cmd::run("bun x vite dev").args(args).req(),
+        Cc::RunFrontend { args } => Cmd::run("bun x vite dev").app().args(args).req(),
         Cc::Build => {
-            Cmd::run("bun x vite build").req();
+            Cmd::run("bun x vite build").app().req();
             Cmd::run("cargo build --release").req()
         }
         Cc::Prepare { args } => Cmd::run(SQLX_PREPARE).args(args).req(),
-        Cc::Preview { args } => Cmd::run("bun x vite preview").args(args).req(),
-        Cc::TestUnit { args } => Cmd::run("bun x vitest").args(args).req(),
+        Cc::Preview { args } => Cmd::run("bun x vite preview").app().args(args).req(),
+        Cc::TestUnit { args } => Cmd::run("bun x vitest").app().args(args).req(),
         Cc::TestAll => {
             Cmd::run("cargo test").req();
             Cmd::run(SPEC_GET).req();
-            Cmd::run("bun x vitest --run").req()
+            Cmd::run("bun x vitest --run").app().req()
         }
         Cc::Spec => {
             Cmd::run("cargo set-version --bump patch --package server").req();
 
             Cmd::run("cargo test test_load_spec").req();
             Cmd::run(SPEC_GET).req();
-            Cmd::run("bun x vitest spec --run").req()
+            Cmd::run("bun x vitest spec --run").app().req()
         }
         Cc::Migrate { args } => Cmd::run("cargo sqlx migrate").args(args).req(),
     }
