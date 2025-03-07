@@ -128,12 +128,17 @@ impl Cmd {
         println!(
             "{}: Running \"{}\"",
             "[garlic]".green(),
-            self.display.cyan()
+            self.display.cyan(),
         );
     }
 
     pub fn app(mut self) -> Self {
-        self.inner.current_dir(self.return_dir.join("app"));
+        self.inner.current_dir(
+            self.inner
+                .get_current_dir()
+                .expect("Expected to get a current working directory when moving to app")
+                .join("app"),
+        );
         self
     }
 
