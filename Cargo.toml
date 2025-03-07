@@ -1,6 +1,14 @@
 [package]
 name = "garlic-cli"
+authors = ["Pascal d'Achard <pasdachard@gmail.com>"]
+license = "MIT OR Apache-2.0"
 version = "0.1.0"
+description = "A CLI tool for the 'garlic' template"
+readme = "README.md"
+homepage = "https://github.com/eatenpancreas/garlic-cli"
+repository = "https://github.com/eatenpancreas/garlic-cli"
+keywords = ["cli", "garlic", "template"]
+categories = ["command-line-utilities"]
 edition = "2021"
 
 [dependencies]
