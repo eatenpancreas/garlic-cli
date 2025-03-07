@@ -54,7 +54,7 @@ fn main() {
 
             Cmd::run("cargo test test_load_spec").req();
             Cmd::run(SPEC_GET).req();
-            Cmd::run("vitest spec --run").req()
+            Cmd::run("bun x vitest spec --run").req()
         }
         Cc::Migrate { args } => Cmd::run("cargo sqlx migrate").args(args).req(),
     }
