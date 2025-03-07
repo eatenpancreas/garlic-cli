@@ -11,6 +11,10 @@ keywords = ["cli", "garlic", "template"]
 categories = ["command-line-utilities"]
 edition = "2021"
 
+[[bin]]
+name = "garlic"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.5.31", features = ["derive"] }
 colored = "3.0.0"
