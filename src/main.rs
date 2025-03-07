@@ -8,7 +8,7 @@ use dialoguer::Confirm;
 use tempdir::TempDir;
 pub use GarlicCommand as Cc;
 
-const SPEC_GET: &str = "bun x openapi-zod-client spec.yml -o ./app/src/lib/gen/client.ts";
+const SPEC_GET: &str = "bun x openapi-zod-client ../spec.yml -o ./app/src/lib/gen/client.ts";
 const SQLX_PREPARE: &str = "cargo sqlx prepare --workspace";
 
 fn main() {
