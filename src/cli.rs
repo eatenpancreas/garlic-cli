@@ -88,7 +88,7 @@ impl Cmd {
         let return_dir = current_dir().expect("Expected to be in a valid directory");
 
         let cmd = args.next().expect("Expected command to not be empty");
-        let dir = match find_garlic_directory() {
+        let dir = match find_dotgarlic_directory() {
             Some(dir) => dir,
             None => return_dir.clone(),
         };
@@ -261,7 +261,7 @@ pub fn copy_dir_contents(
     Ok(())
 }
 
-fn find_garlic_directory() -> Option<PathBuf> {
+pub fn find_dotgarlic_directory() -> Option<PathBuf> {
     let mut current_dir = env::current_dir().ok()?;
 
     loop {

@@ -12,7 +12,18 @@ const SPEC_GET: &str = "bun x openapi-zod-client ../spec.yml -o ./src/lib/gen/cl
 const SQLX_PREPARE: &str = "cargo sqlx prepare --workspace";
 
 fn main() {
-    match GarlicParser::parse().command {
+    let garlic = GarlicParser::parse();
+
+    match &garlic.command {
+        Cc::Init { .. } => { /* init command, we don't expect a .garlic at this point */ }
+        _ => {
+            if find_dotgarlic_directory().is_none() {
+                error_opt("no_dotgarlic", ".garlic File not found. This file is used as an anchor for projects so you can run garlic commands in subdirectories.");
+            }
+        }
+    }
+
+    match garlic.command {
         Cc::Init { location } => {
             let location = location.as_deref().unwrap_or(".");
             init_inner();
