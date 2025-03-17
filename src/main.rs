@@ -3,7 +3,7 @@ mod init_db;
 #[cfg(test)]
 mod tests;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 pub use cli::*;
 use dialoguer::{Confirm, Input};
 use std::{
@@ -16,7 +16,15 @@ pub use GarlicCommand as Cc;
 fn main() {
     let garlic = GarlicParser::parse();
 
-    match &garlic.command {
+    if garlic.help {
+        let h = GarlicParser::command().render_help();
+
+        println!("{h}");
+        // GarlicParser::command().print_help().unwrap();
+        return;
+    }
+
+    match &garlic.command.as_ref().unwrap() {
         Cc::Init { .. } => { /* init command, we don't expect a .garlic at this point */ }
         _ => {
             if find_dotgarlic_directory().is_none() {
@@ -25,10 +33,9 @@ fn main() {
         }
     }
 
-    match garlic.command {
+    match garlic.command.unwrap() {
         Cc::Init { location } => {
             let location = Path::new(location.as_deref().unwrap_or("."));
-            init_inner();
             if !folder_empty(location)
                 && !Confirm::new()
                     .with_prompt("Folder is not empty. Continue?")
@@ -37,6 +44,8 @@ fn main() {
             {
                 error("not_empty", "Folder is not empty. Exiting");
             }
+
+            init_inner();
 
             let tempdir = TempDir::new("garlic-init")
                 .expect("Expected to be able to create temporary directory");
