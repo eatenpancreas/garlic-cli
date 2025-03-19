@@ -1,4 +1,7 @@
-use crate::PostgresUrl;
+use clap::{CommandFactory, Subcommand};
+use strum::IntoEnumIterator;
+
+use crate::{GarlicCommand, GarlicParser, PostgresUrl};
 
 #[test]
 fn test_parse_postgres_url() {
@@ -14,6 +17,19 @@ fn test_parse_postgres_url() {
             database: "DB".to_owned()
         }
     );
+}
+
+#[test]
+fn expected_all_commands_to_be_present() {
+    let root_cmd = GarlicParser::command();
+    for command in GarlicCommand::iter() {
+        let command_str = command.to_string();
+        assert!(GarlicCommand::has_subcommand(&command_str));
+
+        root_cmd
+            .find_subcommand(command_str)
+            .expect("Expected subcommand");
+    }
 }
 
 #[test]

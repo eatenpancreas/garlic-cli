@@ -2,7 +2,7 @@
 name = "garlic-cli"
 authors = ["Pascal d'Achard <pasdachard@gmail.com>"]
 license = "MIT OR Apache-2.0"
-version = "0.2.0"
+version = "0.2.1"
 description = "A CLI tool for the 'garlic' template"
 readme = "README.md"
 homepage = "https://github.com/eatenpancreas/garlic-cli"
@@ -23,4 +23,6 @@ dialoguer = "0.11.0"
 percent-encoding = "2.3.1"
 postgres = "0.19.10"
 rand = "0.9.0"
+strum_macros = "0.27.1"
+strum = { version = "0.27.1", features = ["derive"] }
 tempdir = "0.3.7"

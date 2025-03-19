@@ -3,7 +3,7 @@ mod init_db;
 #[cfg(test)]
 mod tests;
 
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 pub use cli::*;
 use dialoguer::{Confirm, Input};
 use std::{
@@ -16,16 +16,16 @@ pub use GarlicCommand as Cc;
 fn main() {
     let garlic = GarlicParser::parse();
 
-    if garlic.help {
-        let h = GarlicParser::command().render_help();
+    let command = match garlic.command {
+        Some(Cc::Help) => GarlicParser::render_help(None),
+        Some(cmd) if !garlic.help => cmd,
+        c => GarlicParser::render_help(c),
+    };
 
-        println!("{h}");
-        // GarlicParser::command().print_help().unwrap();
-        return;
-    }
-
-    match &garlic.command.as_ref().unwrap() {
+    match &command {
         Cc::Init { .. } => { /* init command, we don't expect a .garlic at this point */ }
+        Cc::Help => {}
+        Cc::Info => {}
         _ => {
             if find_dotgarlic_directory().is_none() {
                 error_opt("no_dotgarlic", ".garlic File not found. This file is used as an anchor for projects so you can run garlic commands in subdirectories.");
@@ -33,7 +33,9 @@ fn main() {
         }
     }
 
-    match garlic.command.unwrap() {
+    match command {
+        Cc::Help => {}
+        Cc::Info => print_info(),
         Cc::Init { location } => {
             let location = Path::new(location.as_deref().unwrap_or("."));
             if !folder_empty(location)
@@ -104,9 +106,7 @@ fn main() {
             garlic_print("Run `garlic server` to start the server!");
             garlic_print("Run `garlic dev --open` to run and open the site!");
         }
-        Cc::InitDb => {
-            init_db::init_db_inner();
-        }
+        Cc::InitDb => init_db::init_db_inner(),
         Cc::RunBackend { args } => Cmd::run("cargo run").args(args).req(),
         Cc::UpdateSelf { args } => Cmd::run("cargo install garlic-cli").args(args).req(),
         Cc::RunFrontend { args } => Cmd::run("bun x vite dev").app().args(args).req(),
